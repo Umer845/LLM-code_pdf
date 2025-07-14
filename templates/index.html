@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cat Facts Chatbot</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            padding: 40px;
+            color: #333;
+        }
+        h1 {
+            color: #444;
+        }
+        form {
+            margin-bottom: 30px;
+        }
+        input[type="text"] {
+            width: 300px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #007bff;
+            border: none;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .response, .knowledge {
+            background: white;
+            padding: 20px;
+            border-radius: 6px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 10px;
+        }
+        strong {
+            color: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <h1>Ask the Cat Facts Chatbot</h1>
+    <form method="POST">
+        <input type="text" name="query" placeholder="Enter your question" style="width: 300px;" required>
+        <button type="submit">Ask</button>
+    </form>
+
+    {% if response %}
+        <h2>Response</h2>
+        <p>{{ response }}</p>
+
+        <h3>Retrieved Knowledge:</h3>
+        <ul>
+            {% for chunk, similarity in retrieved %}
+                <li><strong>{{ "%.2f"|format(similarity) }}</strong>: {{ chunk }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</body>
+</html>
