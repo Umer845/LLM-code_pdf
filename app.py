@@ -114,12 +114,12 @@ if uploaded_file is not None:
     if st.button("Insert into PostgreSQL"):
         try:
             conn = psycopg2.connect(
-                dbname="your_db_name",
-                user="your_db_user",
-                password="your_db_password",
-                host="localhost",
-                port="5432"
-            )
+    dbname="Surveyor",
+    user="postgres",
+    password="United2025",
+    host="localhost",
+    port="5432"
+)
             cur = conn.cursor()
             cur.execute("""
                 INSERT INTO vehicle_inspection (
