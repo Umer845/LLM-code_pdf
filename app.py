@@ -55,6 +55,7 @@ query = st.text_input("Your question:", placeholder="Type your question here..."
 if st.button("Search") and query:
     with st.spinner("Searching..."):
         results = retrieve(query)
-        st.success("Top answers found:")
-        for i, (chunk, score) in enumerate(results, 1):
-            st.write(f"**{i}.** {chunk}")
+        # Join all retrieved chunks into a single paragraph
+        answer = " ".join(chunk for chunk, _ in results)
+        st.success("Answer:")
+        st.write(answer)
