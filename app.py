@@ -65,6 +65,7 @@
 #############New  Code #################
 import streamlit as st
 import psycopg2
+import pandas as pd  # needed for displaying results as DataFrame
 from PyPDF2 import PdfReader
 
 # === Streamlit UI ===
@@ -96,7 +97,7 @@ if uploaded_file is not None:
     is_owner = True
     is_hire_purchase = False
     last_insured_with = None
-    declaration = "I/WE desire to insure..."
+    declaration = "I/WE desire to insure the above vehicle U.I.C of Pakistan Ltd.and I/WE here declare that the particulars given above are in all respect. This Inspection from shall be the basis of the contract between me/us & the Insurer. Any untrue/incorrect statment in this from will result in the policy being null & void from Inception."
     signature_name = "SHAHID.RASHEED"
     branch = "UNITED INSURANCE CO. OF PAKISTAN LTD."
     remarks = "Complete Survey"
@@ -109,17 +110,21 @@ if uploaded_file is not None:
     st.write(f"**Engine No:** {engine_no}")
     st.write(f"**Vehicle Model:** {vehicle_model}")
     st.write(f"**Colour:** {colour}")
+    st.write(f"**Horse_power:** {horse_power}")
+    st.write(f"**Estimated_market_value:** {estimated_market_value}")
+    st.write(f"**Declaration:** {declaration}")
+    st.write(f"**Remarks:** {remarks}")
 
     # === Insert button ===
     if st.button("Insert into PostgreSQL"):
         try:
             conn = psycopg2.connect(
-    dbname="Surveyor",
-    user="postgres",
-    password="United2025",
-    host="localhost",
-    port="5432"
-)
+                dbname="Surveyor",
+                user="postgres",
+                password="United2025",
+                host="localhost",
+                port="5432"
+            )
             cur = conn.cursor()
             cur.execute("""
                 INSERT INTO vehicle_inspection (
@@ -138,5 +143,70 @@ if uploaded_file is not None:
             cur.close()
             conn.close()
             st.success("✅ Inserted into PostgreSQL database!")
+        except Exception as e:
+            st.error(f"❌ Error: {e}")
+
+# ✅ === New: Ask DB section ===
+import streamlit as st
+import psycopg2
+import pandas as pd
+
+st.header("🔍 Ask your database")
+
+question = st.text_input("Your Query (e.g. a name, color, model year, etc.):")
+
+if st.button("Search"):
+    if not question.strip():
+        st.warning("⚠️ Please type something to search.")
+    else:
+        try:
+            with psycopg2.connect(
+                dbname="Surveyor",
+                user="postgres",
+                password="United2025",
+                host="localhost",
+                port="5432"
+            ) as conn:
+                with conn.cursor() as cur:
+
+                    sql = """
+                        SELECT * FROM vehicle_inspection
+                        WHERE
+                            insured_name ILIKE %s OR
+                            address ILIKE %s OR
+                            vehicle_make ILIKE %s OR
+                            vehicle_model ILIKE %s OR
+                            vehicle_reg ILIKE %s OR
+                            chassis_no ILIKE %s OR
+                            engine_no ILIKE %s OR
+                            colour ILIKE %s OR
+                            branch ILIKE %s OR
+                            remarks ILIKE %s
+                    """
+
+                    search_pattern = f"%{question}%"
+
+                    cur.execute(sql, (
+                        search_pattern,
+                        search_pattern,
+                        search_pattern,
+                        search_pattern,
+                        search_pattern,
+                        search_pattern,
+                        search_pattern,
+                        search_pattern,
+                        search_pattern,
+                        search_pattern
+                    ))
+
+                    rows = cur.fetchall()
+                    colnames = [desc[0] for desc in cur.description]
+
+                    if rows:
+                        df = pd.DataFrame(rows, columns=colnames)
+                        st.dataframe(df)
+                    else:
+                        st.info("🔍 No matching records found.")
+
         except Exception as e:
             st.error(f"❌ Error: {e}")
