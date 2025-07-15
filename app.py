@@ -69,54 +69,43 @@ import pandas as pd  # needed for displaying results as DataFrame
 from PyPDF2 import PdfReader
 
 # === Streamlit UI ===
-st.title("📄 PDF Vehicle Inspection Uploader")
+st.title("📄 Upload PDF or Excel and Insert to DB")
 
-uploaded_file = st.file_uploader("Upload a PDF", type="pdf")
+uploaded_file = st.file_uploader(
+    "Upload a PDF or Excel file",
+    type=["pdf", "xls", "xlsx"]
+)
 
 if uploaded_file is not None:
-    st.success("✅ PDF uploaded!")
+    if uploaded_file.name.endswith(".pdf"):
+        st.success("✅ PDF uploaded!")
+        reader = PdfReader(uploaded_file)
+        text = ""
+        for page in reader.pages:
+            text += page.extract_text()
 
-    # === Read PDF ===
-    reader = PdfReader(uploaded_file)
-    text = ""
-    for page in reader.pages:
-        text += page.extract_text()
+        # Dummy parse
+        insured_name = "PDF_INSURED"
+        age = 30
+        number_of_claims = 1
 
-    # === Dummy parse (replace with regex if needed) ===
-    insured_name = "EUROBIZ CORPORATION"
-    address = "170-CCA, PHASE-VI, DHA, LAHORE"
-    vehicle_make = "Model"
-    vehicle_model = "2025"
-    vehicle_reg = "N.A"
-    horse_power = 2755
-    chassis_no = "GUN156R-1106989"
-    engine_no = "IGD5774029"
-    speedometer = 0
-    colour = "STELLAR WHITE"
-    estimated_market_value = 18093000
-    is_owner = True
-    is_hire_purchase = False
-    last_insured_with = None
-    declaration = "I/WE desire to insure the above vehicle U.I.C of Pakistan Ltd.and I/WE here declare that the particulars given above are in all respect. This Inspection from shall be the basis of the contract between me/us & the Insurer. Any untrue/incorrect statment in this from will result in the policy being null & void from Inception."
-    signature_name = "SHAHID.RASHEED"
-    branch = "UNITED INSURANCE CO. OF PAKISTAN LTD."
-    remarks = "Complete Survey"
+        st.write("**Extracted text from PDF:**")
+        st.text(text)
 
-    # === Show the extracted data ===
-    st.subheader("Extracted Data")
-    st.write(f"**Insured:** {insured_name}")
-    st.write(f"**Address:** {address}")
-    st.write(f"**Chassis No:** {chassis_no}")
-    st.write(f"**Engine No:** {engine_no}")
-    st.write(f"**Vehicle Model:** {vehicle_model}")
-    st.write(f"**Colour:** {colour}")
-    st.write(f"**Horse_power:** {horse_power}")
-    st.write(f"**Estimated_market_value:** {estimated_market_value}")
-    st.write(f"**Declaration:** {declaration}")
-    st.write(f"**Remarks:** {remarks}")
+    elif uploaded_file.name.endswith((".xls", ".xlsx")):
+        st.success("✅ Excel uploaded!")
+        df = pd.read_excel(uploaded_file)
 
-    # === Insert button ===
-    if st.button("Insert into PostgreSQL"):
+        st.write("**Preview Excel:**")
+        st.dataframe(df)
+
+        # Dummy values — you could map your Excel columns:
+        insured_name = "EXCEL_INSURED"
+        age = 40
+        number_of_claims = 2
+
+    # Insert button for both
+    if st.button("Insert to PostgreSQL"):
         try:
             conn = psycopg2.connect(
                 dbname="Surveyor",
@@ -126,23 +115,24 @@ if uploaded_file is not None:
                 port="5432"
             )
             cur = conn.cursor()
+
             cur.execute("""
                 INSERT INTO vehicle_inspection (
-                    insured_name, address, vehicle_make, vehicle_model, vehicle_reg,
-                    horse_power, chassis_no, engine_no, speedometer, colour,
-                    estimated_market_value, is_owner, is_hire_purchase,
-                    last_insured_with, declaration, signature_name, branch, remarks
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    insured_name,
+                    age,
+                    number_of_claims
+                ) VALUES (%s, %s, %s)
             """, (
-                insured_name, address, vehicle_make, vehicle_model, vehicle_reg,
-                horse_power, chassis_no, engine_no, speedometer, colour,
-                estimated_market_value, is_owner, is_hire_purchase,
-                last_insured_with, declaration, signature_name, branch, remarks
+                insured_name,
+                age,
+                number_of_claims
             ))
+
             conn.commit()
             cur.close()
             conn.close()
-            st.success("✅ Inserted into PostgreSQL database!")
+            st.success("✅ Inserted into PostgreSQL!")
+
         except Exception as e:
             st.error(f"❌ Error: {e}")
 
@@ -153,7 +143,7 @@ import pandas as pd
 
 st.header("🔍 Ask your database")
 
-question = st.text_input("Your Query (e.g. a name, color, model year, etc.):")
+question = st.text_input("Your Query (e.g. a name, age, number of claims, etc.):")
 
 if st.button("Search"):
     if not question.strip():
@@ -181,7 +171,9 @@ if st.button("Search"):
                             engine_no ILIKE %s OR
                             colour ILIKE %s OR
                             branch ILIKE %s OR
-                            remarks ILIKE %s
+                            remarks ILIKE %s OR
+                            CAST(age AS TEXT) ILIKE %s OR
+                            CAST(number_of_claims AS TEXT) ILIKE %s
                     """
 
                     search_pattern = f"%{question}%"
@@ -196,7 +188,9 @@ if st.button("Search"):
                         search_pattern,
                         search_pattern,
                         search_pattern,
-                        search_pattern
+                        search_pattern,
+                        search_pattern,  # age
+                        search_pattern   # number_of_claims
                     ))
 
                     rows = cur.fetchall()
@@ -210,3 +204,8 @@ if st.button("Search"):
 
         except Exception as e:
             st.error(f"❌ Error: {e}")
+
+
+
+age = 35  # example age, extract properly if you have it
+number_of_claims = 1  # example
