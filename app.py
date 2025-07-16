@@ -1,66 +1,3 @@
-# import streamlit as st
-# from pypdf import PdfReader
-# import ollama
-
-# # === CONFIG ===
-# EMBEDDING_MODEL = 'hf.co/CompendiumLabs/bge-base-en-v1.5-gguf'
-
-# # === Load and process PDF ===
-# @st.cache_resource
-# def load_pdf():
-#     dataset = []
-#     with open('text.pdf', 'rb') as file:
-#         reader = PdfReader(file)
-#         for page in reader.pages:
-#             text = page.extract_text()
-#             if text:
-#                 lines = text.split('\n')
-#                 dataset.extend([line.strip() for line in lines if line.strip()])
-#     return dataset
-
-# dataset = load_pdf()
-# st.info(f"✅ Loaded {len(dataset)} lines from PDF")
-
-# # === Build vector DB ===
-# @st.cache_resource
-# def build_vector_db(dataset):
-#     vector_db = []
-#     for chunk in dataset:
-#         embedding = ollama.embed(model=EMBEDDING_MODEL, input=chunk)['embeddings'][0]
-#         vector_db.append((chunk, embedding))
-#     return vector_db
-
-# VECTOR_DB = build_vector_db(dataset)
-
-# # === Cosine similarity ===
-# def cosine_similarity(a, b):
-#     dot = sum(x * y for x, y in zip(a, b))
-#     norm_a = sum(x ** 2 for x in a) ** 0.5
-#     norm_b = sum(y ** 2 for y in b) ** 0.5
-#     return dot / (norm_a * norm_b)
-
-# # === Retrieve relevant chunks ===
-# def retrieve(query, top_n=3):
-#     query_embedding = ollama.embed(model=EMBEDDING_MODEL, input=query)['embeddings'][0]
-#     similarities = [(chunk, cosine_similarity(query_embedding, emb)) for chunk, emb in VECTOR_DB]
-#     similarities.sort(key=lambda x: x[1], reverse=True)
-#     return similarities[:top_n]
-
-# # === Streamlit UI ===
-# st.title("📄 PDF AnswerBot")
-# st.write("Ask something from your PDF!")
-
-# query = st.text_input("Your question:", placeholder="Type your question here...")
-
-# if st.button("Search") and query:
-#     with st.spinner("Searching..."):
-#         results = retrieve(query)
-#         # Join all retrieved chunks into a single paragraph
-#         answer = " ".join(chunk for chunk, _ in results)
-#         st.success("Answer:")
-#         st.write(answer)
-
-
 
 #############New  Code #################
 import streamlit as st
@@ -117,16 +54,51 @@ if uploaded_file is not None:
             cur = conn.cursor()
 
             cur.execute("""
-                INSERT INTO vehicle_inspection (
-                    insured_name,
-                    age,
-                    number_of_claims
-                ) VALUES (%s, %s, %s)
-            """, (
-                insured_name,
-                age,
-                number_of_claims
-            ))
+    INSERT INTO vehicle_inspection (
+        client_name,
+        address1,
+        city_id,
+        city_name,
+        region_id,
+        bus_class_name,
+        src_income_title,
+        active_tax_payer,
+        driving_style,
+        make_name,
+        sub_make_name,
+        model_year,
+        reg_number,
+        tracker_id,
+        policy_type_name,
+        suminsured,
+        grosspremium,
+        netpremium,
+        no_of_claims,
+        clm_amount
+    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+""", (
+    client_name,
+    address1,
+    city_id,
+    city_name,
+    region_id,
+    bus_class_name,
+    src_income_title,
+    active_tax_payer,
+    driving_style,
+    make_name,
+    sub_make_name,
+    model_year,
+    reg_number,
+    tracker_id,
+    policy_type_name,
+    suminsured,
+    grosspremium,
+    netpremium,
+    no_of_claims,
+    clm_amount
+))
+
 
             conn.commit()
             cur.close()
@@ -143,7 +115,7 @@ import pandas as pd
 
 st.header("🔍 Ask your database")
 
-question = st.text_input("Your Query (e.g. a name, age, number of claims, etc.):")
+question = st.text_input("Your Query (e.g. client name, city, make, age, number of claims, etc.):")
 
 if st.button("Search"):
     if not question.strip():
@@ -162,16 +134,26 @@ if st.button("Search"):
                     sql = """
                         SELECT * FROM vehicle_inspection
                         WHERE
-                            insured_name ILIKE %s OR
-                            address ILIKE %s OR
-                            vehicle_make ILIKE %s OR
-                            vehicle_model ILIKE %s OR
-                            vehicle_reg ILIKE %s OR
-                            chassis_no ILIKE %s OR
-                            engine_no ILIKE %s OR
-                            colour ILIKE %s OR
-                            branch ILIKE %s OR
-                            remarks ILIKE %s OR
+                            client_name ILIKE %s OR
+                            address1 ILIKE %s OR
+                            CAST(city_id AS TEXT) ILIKE %s OR
+                            city_name ILIKE %s OR
+                            CAST(region_id AS TEXT) ILIKE %s OR
+                            bus_class_name ILIKE %s OR
+                            src_income_title ILIKE %s OR
+                            CAST(active_tax_payer AS TEXT) ILIKE %s OR
+                            driving_style ILIKE %s OR
+                            make_name ILIKE %s OR
+                            sub_make_name ILIKE %s OR
+                            CAST(model_year AS TEXT) ILIKE %s OR
+                            reg_number ILIKE %s OR
+                            tracker_id ILIKE %s OR
+                            policy_type_name ILIKE %s OR
+                            CAST(suminsured AS TEXT) ILIKE %s OR
+                            CAST(grosspremium AS TEXT) ILIKE %s OR
+                            CAST(netpremium AS TEXT) ILIKE %s OR
+                            CAST(no_of_claims AS TEXT) ILIKE %s OR
+                            CAST(clm_amount AS TEXT) ILIKE %s OR
                             CAST(age AS TEXT) ILIKE %s OR
                             CAST(number_of_claims AS TEXT) ILIKE %s
                     """
@@ -179,16 +161,26 @@ if st.button("Search"):
                     search_pattern = f"%{question}%"
 
                     cur.execute(sql, (
-                        search_pattern,
-                        search_pattern,
-                        search_pattern,
-                        search_pattern,
-                        search_pattern,
-                        search_pattern,
-                        search_pattern,
-                        search_pattern,
-                        search_pattern,
-                        search_pattern,
+                        search_pattern,  # client_name
+                        search_pattern,  # address1
+                        search_pattern,  # city_id
+                        search_pattern,  # city_name
+                        search_pattern,  # region_id
+                        search_pattern,  # bus_class_name
+                        search_pattern,  # src_income_title
+                        search_pattern,  # active_tax_payer
+                        search_pattern,  # driving_style
+                        search_pattern,  # make_name
+                        search_pattern,  # sub_make_name
+                        search_pattern,  # model_year
+                        search_pattern,  # reg_number
+                        search_pattern,  # tracker_id
+                        search_pattern,  # policy_type_name
+                        search_pattern,  # suminsured
+                        search_pattern,  # grosspremium
+                        search_pattern,  # netpremium
+                        search_pattern,  # no_of_claims
+                        search_pattern,  # clm_amount
                         search_pattern,  # age
                         search_pattern   # number_of_claims
                     ))
@@ -204,8 +196,3 @@ if st.button("Search"):
 
         except Exception as e:
             st.error(f"❌ Error: {e}")
-
-
-
-age = 35  # example age, extract properly if you have it
-number_of_claims = 1  # example
