@@ -1,17 +1,33 @@
-
-#############New  Code #################
 import streamlit as st
 import psycopg2
-import pandas as pd  # needed for displaying results as DataFrame
+import pandas as pd
 from PyPDF2 import PdfReader
 
-# === Streamlit UI ===
 st.title("📄 Upload PDF or Excel and Insert to DB")
 
 uploaded_file = st.file_uploader(
     "Upload a PDF or Excel file",
     type=["pdf", "xls", "xlsx"]
 )
+
+data_to_insert = []
+
+# ✅ Final safe_int with BIGINT cap and text protection
+def safe_int(val):
+    try:
+        if val is None:
+            return 0
+        if isinstance(val, str) and val.strip().lower() in ["nan", "inf", "-inf"]:
+            return 0
+        if pd.isna(val):
+            return 0
+        val = int(float(val))
+        # ✅ Cap to Postgres BIGINT limit
+        if abs(val) > 9_000_000_000_000_000_000:
+            return 0
+        return val
+    except:
+        return 0
 
 if uploaded_file is not None:
     if uploaded_file.name.endswith(".pdf"):
@@ -20,29 +36,54 @@ if uploaded_file is not None:
         text = ""
         for page in reader.pages:
             text += page.extract_text()
-
-        # Dummy parse
-        insured_name = "PDF_INSURED"
-        age = 30
-        number_of_claims = 1
-
-        st.write("**Extracted text from PDF:**")
+        st.write("**Extracted text:**")
         st.text(text)
+        st.warning("⚠️ You must parse real fields from PDF and map them here!")
 
     elif uploaded_file.name.endswith((".xls", ".xlsx")):
         st.success("✅ Excel uploaded!")
         df = pd.read_excel(uploaded_file)
-
-        st.write("**Preview Excel:**")
         st.dataframe(df)
+        st.info("✅ Processing rows from Excel...")
 
-        # Dummy values — you could map your Excel columns:
-        insured_name = "EXCEL_INSURED"
-        age = 40
-        number_of_claims = 2
+        for _, row in df.iterrows():
+            client_name = row.get('CLIENT_NAME')
+            address1 = row.get('ADDRESS1')
+            city_id = safe_int(row.get('CITY_ID'))
+            city_name = row.get('CITY_NAME')
+            region_id = safe_int(row.get('REGION_ID'))
+            bus_class_name = row.get('BUS_CLASS_NAME')
+            src_income_title = row.get('SRC_INCOME_TITLE')
+            active_tax_payer = bool(row.get('ACTIVE_TAX_PAYER'))
+            driving_style = row.get('DRIVING_STYLE')
+            make_name = row.get('MAKE_NAME')
+            sub_make_name = row.get('SUB_MAKE_NAME')
+            model_year = safe_int(row.get('MODEL_YEAR'))
+            reg_number = row.get('REG_NUMBER')
+            tracker_id = safe_int(row.get('TRACKER_ID'))
+            policy_type_name = row.get('POLICY_TYPE_NAME')
+            suminsured = safe_int(row.get('SUMINSURED'))
+            grosspremium = safe_int(row.get('GROSSPREMIUM'))
+            netpremium = safe_int(row.get('NETPREMIUM'))
+            no_of_claims = bool(row.get('NO_OF_CLAIMS'))
+            clm_amount = safe_int(row.get('CLM_AMOUNT'))
 
-    # Insert button for both
-    if st.button("Insert to PostgreSQL"):
+            data_to_insert.append((
+                client_name, address1, city_id, city_name, region_id,
+                bus_class_name, src_income_title, active_tax_payer, driving_style,
+                make_name, sub_make_name, model_year, reg_number, tracker_id,
+                policy_type_name, suminsured, grosspremium, netpremium,
+                no_of_claims, clm_amount
+            ))
+
+        st.info(f"✅ Processed {len(data_to_insert)} rows ready for insert.")
+
+if st.button("Insert to PostgreSQL"):
+    st.write(f"👉 Rows ready to insert: {len(data_to_insert)}")
+
+    if not data_to_insert:
+        st.warning("⚠️ No data found to insert. Please upload valid data first.")
+    else:
         try:
             conn = psycopg2.connect(
                 dbname="Surveyor",
@@ -53,29 +94,61 @@ if uploaded_file is not None:
             )
             cur = conn.cursor()
 
-            cur.execute("""
+            rows_inserted = 0
+
+            for record in data_to_insert:
+                (
+                    client_name,
+                    address1,
+                    city_id,
+                    city_name,
+                    region_id,
+                    bus_class_name,
+                    src_income_title,
+                    active_tax_payer,
+                    driving_style,
+                    make_name,
+                    sub_make_name,
+                    model_year,
+                    reg_number,
+                    tracker_id,
+                    policy_type_name,
+                    suminsured,
+                    grosspremium,
+                    netpremium,
+                    no_of_claims,
+                    clm_amount
+                ) = record
+
+                active_tax_payer = '1' if active_tax_payer else '0'
+                no_of_claims = '1' if no_of_claims else '0'
+                reg_number = row.get('REG_NUMBER')
+
+
+                cur.execute("""
     INSERT INTO vehicle_inspection (
-        client_name,
-        address1,
-        city_id,
-        city_name,
-        region_id,
-        bus_class_name,
-        src_income_title,
-        active_tax_payer,
-        driving_style,
-        make_name,
-        sub_make_name,
-        model_year,
-        reg_number,
-        tracker_id,
-        policy_type_name,
-        suminsured,
-        grosspremium,
-        netpremium,
-        no_of_claims,
-        clm_amount
-    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        CLIENT_NAME,
+        ADDRESS1,
+        CITY_ID,
+        CITY_NAME,
+        REGION_ID,
+        BUS_CLASS_NAME,
+        SRC_INCOME_TITLE,
+        ACTIVE_TAX_PAYER,
+        DRIVING_STYLE,
+        MAKE_NAME,
+        SUB_MAKE_NAME,
+        MODEL_YEAR,
+        REG_NUMBER,  -- <-- NOW TEXT!
+        TRACKER_ID,
+        POLICY_TYPE_NAME,
+        SUMINSURED,
+        GROSSPREMIUM,
+        NETPREMIUM,
+        NO_OF_CLAIMS,
+        CLM_AMOUNT
+    )
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
 """, (
     client_name,
     address1,
@@ -89,7 +162,7 @@ if uploaded_file is not None:
     make_name,
     sub_make_name,
     model_year,
-    reg_number,
+    reg_number,  # <-- This stays string now!
     tracker_id,
     policy_type_name,
     suminsured,
@@ -100,22 +173,23 @@ if uploaded_file is not None:
 ))
 
 
+                rows_inserted += 1
+
             conn.commit()
             cur.close()
             conn.close()
-            st.success("✅ Inserted into PostgreSQL!")
+            st.success(f"✅ Inserted {rows_inserted} rows into PostgreSQL!")
 
         except Exception as e:
             st.error(f"❌ Error: {e}")
 
-# ✅ === New: Ask DB section ===
-import streamlit as st
-import psycopg2
-import pandas as pd
 
+
+
+# ✅ Search block
 st.header("🔍 Ask your database")
 
-question = st.text_input("Your Query (e.g. client name, city, make, age, number of claims, etc.):")
+question = st.text_input("Your Query (e.g. client name, city, make, etc.):")
 
 if st.button("Search"):
     if not question.strip():
@@ -130,60 +204,33 @@ if st.button("Search"):
                 port="5432"
             ) as conn:
                 with conn.cursor() as cur:
-
                     sql = """
                         SELECT * FROM vehicle_inspection
                         WHERE
-                            client_name ILIKE %s OR
-                            address1 ILIKE %s OR
-                            CAST(city_id AS TEXT) ILIKE %s OR
-                            city_name ILIKE %s OR
-                            CAST(region_id AS TEXT) ILIKE %s OR
-                            bus_class_name ILIKE %s OR
-                            src_income_title ILIKE %s OR
-                            CAST(active_tax_payer AS TEXT) ILIKE %s OR
-                            driving_style ILIKE %s OR
-                            make_name ILIKE %s OR
-                            sub_make_name ILIKE %s OR
-                            CAST(model_year AS TEXT) ILIKE %s OR
-                            reg_number ILIKE %s OR
-                            tracker_id ILIKE %s OR
-                            policy_type_name ILIKE %s OR
-                            CAST(suminsured AS TEXT) ILIKE %s OR
-                            CAST(grosspremium AS TEXT) ILIKE %s OR
-                            CAST(netpremium AS TEXT) ILIKE %s OR
-                            CAST(no_of_claims AS TEXT) ILIKE %s OR
-                            CAST(clm_amount AS TEXT) ILIKE %s OR
-                            CAST(age AS TEXT) ILIKE %s OR
-                            CAST(number_of_claims AS TEXT) ILIKE %s
+                            CLIENT_NAME ILIKE %s OR
+                            ADDRESS1 ILIKE %s OR
+                            CAST(CITY_ID AS TEXT) ILIKE %s OR
+                            CITY_NAME ILIKE %s OR
+                            CAST(REGION_ID AS TEXT) ILIKE %s OR
+                            BUS_CLASS_NAME ILIKE %s OR
+                            SRC_INCOME_TITLE ILIKE %s OR
+                            CAST(ACTIVE_TAX_PAYER AS TEXT) ILIKE %s OR
+                            DRIVING_STYLE ILIKE %s OR
+                            MAKE_NAME ILIKE %s OR
+                            SUB_MAKE_NAME ILIKE %s OR
+                            CAST(MODEL_YEAR AS TEXT) ILIKE %s OR
+                            CAST(REG_NUMBER AS TEXT) ILIKE %s OR
+                            CAST(TRACKER_ID AS TEXT) ILIKE %s OR
+                            POLICY_TYPE_NAME ILIKE %s OR
+                            CAST(SUMINSURED AS TEXT) ILIKE %s OR
+                            CAST(GROSSPREMIUM AS TEXT) ILIKE %s OR
+                            CAST(NETPREMIUM AS TEXT) ILIKE %s OR
+                            CAST(NO_OF_CLAIMS AS TEXT) ILIKE %s OR
+                            CAST(CLM_AMOUNT AS TEXT) ILIKE %s
                     """
 
                     search_pattern = f"%{question}%"
-
-                    cur.execute(sql, (
-                        search_pattern,  # client_name
-                        search_pattern,  # address1
-                        search_pattern,  # city_id
-                        search_pattern,  # city_name
-                        search_pattern,  # region_id
-                        search_pattern,  # bus_class_name
-                        search_pattern,  # src_income_title
-                        search_pattern,  # active_tax_payer
-                        search_pattern,  # driving_style
-                        search_pattern,  # make_name
-                        search_pattern,  # sub_make_name
-                        search_pattern,  # model_year
-                        search_pattern,  # reg_number
-                        search_pattern,  # tracker_id
-                        search_pattern,  # policy_type_name
-                        search_pattern,  # suminsured
-                        search_pattern,  # grosspremium
-                        search_pattern,  # netpremium
-                        search_pattern,  # no_of_claims
-                        search_pattern,  # clm_amount
-                        search_pattern,  # age
-                        search_pattern   # number_of_claims
-                    ))
+                    cur.execute(sql, tuple([search_pattern] * 20))
 
                     rows = cur.fetchall()
                     colnames = [desc[0] for desc in cur.description]
