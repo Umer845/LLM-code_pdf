@@ -4,7 +4,6 @@
 import streamlit as st
 import psycopg2
 import pandas as pd
-from PyPDF2 import PdfReader
 
 st.header("🚦 Calculate Risk Profile")
 
