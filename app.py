@@ -12,7 +12,7 @@ uploaded_file = st.file_uploader(
 
 data_to_insert = []
 
-# ✅ Final safe_int with BIGINT cap and text protection
+# Helper to safely handle int-like fields
 def safe_int(val):
     try:
         if val is None:
@@ -22,7 +22,6 @@ def safe_int(val):
         if pd.isna(val):
             return 0
         val = int(float(val))
-        # ✅ Cap to Postgres BIGINT limit
         if abs(val) > 9_000_000_000_000_000_000:
             return 0
         return val
@@ -59,7 +58,7 @@ if uploaded_file is not None:
             make_name = row.get('MAKE_NAME')
             sub_make_name = row.get('SUB_MAKE_NAME')
             model_year = safe_int(row.get('MODEL_YEAR'))
-            reg_number = row.get('REG_NUMBER')
+            reg_number = str(row.get('REG_NUMBER')) if row.get('REG_NUMBER') else ""
             tracker_id = safe_int(row.get('TRACKER_ID'))
             policy_type_name = row.get('POLICY_TYPE_NAME')
             suminsured = safe_int(row.get('SUMINSURED'))
@@ -79,8 +78,6 @@ if uploaded_file is not None:
         st.info(f"✅ Processed {len(data_to_insert)} rows ready for insert.")
 
 if st.button("Insert to PostgreSQL"):
-    st.write(f"👉 Rows ready to insert: {len(data_to_insert)}")
-
     if not data_to_insert:
         st.warning("⚠️ No data found to insert. Please upload valid data first.")
     else:
@@ -93,7 +90,6 @@ if st.button("Insert to PostgreSQL"):
                 port="5432"
             )
             cur = conn.cursor()
-
             rows_inserted = 0
 
             for record in data_to_insert:
@@ -122,56 +118,53 @@ if st.button("Insert to PostgreSQL"):
 
                 active_tax_payer = '1' if active_tax_payer else '0'
                 no_of_claims = '1' if no_of_claims else '0'
-                reg_number = row.get('REG_NUMBER')
-
 
                 cur.execute("""
-    INSERT INTO vehicle_inspection (
-        CLIENT_NAME,
-        ADDRESS1,
-        CITY_ID,
-        CITY_NAME,
-        REGION_ID,
-        BUS_CLASS_NAME,
-        SRC_INCOME_TITLE,
-        ACTIVE_TAX_PAYER,
-        DRIVING_STYLE,
-        MAKE_NAME,
-        SUB_MAKE_NAME,
-        MODEL_YEAR,
-        REG_NUMBER,  -- <-- NOW TEXT!
-        TRACKER_ID,
-        POLICY_TYPE_NAME,
-        SUMINSURED,
-        GROSSPREMIUM,
-        NETPREMIUM,
-        NO_OF_CLAIMS,
-        CLM_AMOUNT
-    )
-    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-""", (
-    client_name,
-    address1,
-    city_id,
-    city_name,
-    region_id,
-    bus_class_name,
-    src_income_title,
-    active_tax_payer,
-    driving_style,
-    make_name,
-    sub_make_name,
-    model_year,
-    reg_number,  # <-- This stays string now!
-    tracker_id,
-    policy_type_name,
-    suminsured,
-    grosspremium,
-    netpremium,
-    no_of_claims,
-    clm_amount
-))
-
+                    INSERT INTO vehicle_inspection (
+                        CLIENT_NAME,
+                        ADDRESS1,
+                        CITY_ID,
+                        CITY_NAME,
+                        REGION_ID,
+                        BUS_CLASS_NAME,
+                        SRC_INCOME_TITLE,
+                        ACTIVE_TAX_PAYER,
+                        DRIVING_STYLE,
+                        MAKE_NAME,
+                        SUB_MAKE_NAME,
+                        MODEL_YEAR,
+                        REG_NUMBER,
+                        TRACKER_ID,
+                        POLICY_TYPE_NAME,
+                        SUMINSURED,
+                        GROSSPREMIUM,
+                        NETPREMIUM,
+                        NO_OF_CLAIMS,
+                        CLM_AMOUNT
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """, (
+                    client_name,
+                    address1,
+                    city_id,
+                    city_name,
+                    region_id,
+                    bus_class_name,
+                    src_income_title,
+                    active_tax_payer,
+                    driving_style,
+                    make_name,
+                    sub_make_name,
+                    model_year,
+                    reg_number,
+                    tracker_id,
+                    policy_type_name,
+                    suminsured,
+                    grosspremium,
+                    netpremium,
+                    no_of_claims,
+                    clm_amount
+                ))
 
                 rows_inserted += 1
 
@@ -183,11 +176,10 @@ if st.button("Insert to PostgreSQL"):
         except Exception as e:
             st.error(f"❌ Error: {e}")
 
-
-
-
-# ✅ Search block
-st.header("🔍 Ask your database")
+# ====================
+# 🔍 Search Block
+# ====================
+st.header("🔍 Search your database")
 
 question = st.text_input("Your Query (e.g. client name, city, make, etc.):")
 
@@ -196,50 +188,55 @@ if st.button("Search"):
         st.warning("⚠️ Please type something to search.")
     else:
         try:
-            with psycopg2.connect(
+            conn = psycopg2.connect(
                 dbname="Surveyor",
                 user="postgres",
                 password="United2025",
                 host="localhost",
                 port="5432"
-            ) as conn:
-                with conn.cursor() as cur:
-                    sql = """
-                        SELECT * FROM vehicle_inspection
-                        WHERE
-                            CLIENT_NAME ILIKE %s OR
-                            ADDRESS1 ILIKE %s OR
-                            CAST(CITY_ID AS TEXT) ILIKE %s OR
-                            CITY_NAME ILIKE %s OR
-                            CAST(REGION_ID AS TEXT) ILIKE %s OR
-                            BUS_CLASS_NAME ILIKE %s OR
-                            SRC_INCOME_TITLE ILIKE %s OR
-                            CAST(ACTIVE_TAX_PAYER AS TEXT) ILIKE %s OR
-                            DRIVING_STYLE ILIKE %s OR
-                            MAKE_NAME ILIKE %s OR
-                            SUB_MAKE_NAME ILIKE %s OR
-                            CAST(MODEL_YEAR AS TEXT) ILIKE %s OR
-                            CAST(REG_NUMBER AS TEXT) ILIKE %s OR
-                            CAST(TRACKER_ID AS TEXT) ILIKE %s OR
-                            POLICY_TYPE_NAME ILIKE %s OR
-                            CAST(SUMINSURED AS TEXT) ILIKE %s OR
-                            CAST(GROSSPREMIUM AS TEXT) ILIKE %s OR
-                            CAST(NETPREMIUM AS TEXT) ILIKE %s OR
-                            CAST(NO_OF_CLAIMS AS TEXT) ILIKE %s OR
-                            CAST(CLM_AMOUNT AS TEXT) ILIKE %s
-                    """
+            )
+            cur = conn.cursor()
 
-                    search_pattern = f"%{question}%"
-                    cur.execute(sql, tuple([search_pattern] * 20))
+            sql = """
+                SELECT * FROM vehicle_inspection
+                WHERE
+                    CLIENT_NAME ILIKE %s OR
+                    ADDRESS1 ILIKE %s OR
+                    CAST(CITY_ID AS TEXT) ILIKE %s OR
+                    CITY_NAME ILIKE %s OR
+                    CAST(REGION_ID AS TEXT) ILIKE %s OR
+                    BUS_CLASS_NAME ILIKE %s OR
+                    SRC_INCOME_TITLE ILIKE %s OR
+                    CAST(ACTIVE_TAX_PAYER AS TEXT) ILIKE %s OR
+                    DRIVING_STYLE ILIKE %s OR
+                    MAKE_NAME ILIKE %s OR
+                    SUB_MAKE_NAME ILIKE %s OR
+                    CAST(MODEL_YEAR AS TEXT) ILIKE %s OR
+                    REG_NUMBER ILIKE %s OR
+                    CAST(TRACKER_ID AS TEXT) ILIKE %s OR
+                    POLICY_TYPE_NAME ILIKE %s OR
+                    CAST(SUMINSURED AS TEXT) ILIKE %s OR
+                    CAST(GROSSPREMIUM AS TEXT) ILIKE %s OR
+                    CAST(NETPREMIUM AS TEXT) ILIKE %s OR
+                    CAST(NO_OF_CLAIMS AS TEXT) ILIKE %s OR
+                    CAST(CLM_AMOUNT AS TEXT) ILIKE %s
+            """
 
-                    rows = cur.fetchall()
-                    colnames = [desc[0] for desc in cur.description]
+            search_pattern = f"%{question}%"
+            cur.execute(sql, tuple([search_pattern] * 20))
 
-                    if rows:
-                        df = pd.DataFrame(rows, columns=colnames)
-                        st.dataframe(df)
-                    else:
-                        st.info("🔍 No matching records found.")
+            rows = cur.fetchall()
+            colnames = [desc[0] for desc in cur.description]
+
+            if rows:
+                df = pd.DataFrame(rows, columns=colnames)
+                st.dataframe(df)
+            else:
+                st.info("🔍 No matching records found.")
+
+            cur.close()
+            conn.close()
 
         except Exception as e:
             st.error(f"❌ Error: {e}")
+
