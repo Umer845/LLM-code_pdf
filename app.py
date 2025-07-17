@@ -240,3 +240,7 @@ if st.button("Search"):
         except Exception as e:
             st.error(f"❌ Error: {e}")
 
+
+# ====================
+# 🔍 END Search Block
+# ====================

@@ -59,6 +59,8 @@ if st.button("Calculate Risk"):
         f"✅ Age Score: {age_score} | Capacity Score: {cap_score} | Claims Score: {claim_score} | Total Score: {total_score:.1f}"
     )
 
+    st.session_state["final_risk"] = final_risk
+
 
     # ✅ ✅ ✅ Keep this INSIDE the button block!
     # Define background color based on risk
@@ -117,3 +119,9 @@ if st.button("Calculate Risk"):
 
     except Exception as e:
         st.error(f"❌ DB Error: {e}")
+
+
+# ===========================
+# 🚦 END Risk Profile Block
+# ===========================
+
