@@ -5,8 +5,8 @@ import streamlit as st
 import psycopg2
 import pandas as pd
 
-
-st.header("💰 Calculate Estimated Premium Rate")
+def run_premium_block():
+ st.header("💰 Premium Calculation Block")
 
 # User inputs
 MODEL_YEAR = st.number_input("Enter Latest Model Year", min_value=1980, max_value=2050, value=2024)

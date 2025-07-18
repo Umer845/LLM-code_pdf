@@ -5,7 +5,8 @@ import streamlit as st
 import psycopg2
 import pandas as pd
 
-st.header("🚦 Calculate Risk Profile")
+def run_risk_profile():
+ st.header("🚦 Risk Profile Block")
 
 age = st.number_input("Driver Age", min_value=16, max_value=100, value=30)
 vehicle_capacity = st.number_input("Vehicle Capacity (cc)", min_value=500, max_value=5000, value=1500)
