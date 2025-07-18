@@ -1,7 +1,7 @@
 import streamlit as st
 import psycopg2
 from werkzeug.security import generate_password_hash, check_password_hash
-from app import run_app 
+from app import run_app  # ✅ Make sure app.py has: def run_app(): ...
 
 # ---- DB CONNECTION ----
 conn = psycopg2.connect(
@@ -13,18 +13,21 @@ conn = psycopg2.connect(
 )
 cur = conn.cursor()
 
-# ---- SESSION ----
+# ---- SESSION STATE ----
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 if 'username' not in st.session_state:
     st.session_state.username = ""
+if 'page' not in st.session_state:
+    st.session_state.page = "login"
 
 # ---- LOGIN PAGE ----
 def login():
-    st.title("Login")
+    st.title("🔐 Login")
 
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
+
     if st.button("Login"):
         cur.execute("SELECT password FROM authentication WHERE username = %s", (username,))
         result = cur.fetchone()
@@ -32,16 +35,16 @@ def login():
         if result and check_password_hash(result[0], password):
             st.session_state.logged_in = True
             st.session_state.username = username
-            st.success(f"Welcome, {username}!")
+            st.success(f"✅ Welcome, {username}!")
         else:
-            st.error("Invalid username or password")
+            st.error("❌ Invalid username or password.")
 
     if st.button("Register instead"):
         st.session_state.page = "register"
 
 # ---- REGISTRATION PAGE ----
 def register():
-    st.title("Register")
+    st.title("📝 Register")
 
     username = st.text_input("Username")
     age = st.number_input("Age", min_value=1)
@@ -56,32 +59,19 @@ def register():
                 (username, age, phone_no, hashed_pw)
             )
             conn.commit()
-            st.success("Registration successful! You can now log in.")
+            st.success("✅ Registration successful! You can now log in.")
             st.session_state.page = "login"
         except Exception as e:
-            st.error(f"Error: {e}")
+            st.error(f"❌ Error: {e}")
 
     if st.button("Back to Login"):
         st.session_state.page = "login"
 
-# ---- MAIN APP ----
-def main_app():
-    st.title(f"Welcome, {st.session_state.username}!")
-    st.write("🎉 This is your main app content here.")
-
-    if st.button("Logout"):
-        st.session_state.logged_in = False
-        st.session_state.username = ""
-        st.session_state.page = "login"
-
 # ---- APP ROUTER ----
-if 'page' not in st.session_state:
-    st.session_state.page = "login"
-
 if not st.session_state.logged_in:
     if st.session_state.page == "login":
         login()
     elif st.session_state.page == "register":
         register()
 else:
-    run_app() 
+    run_app()  # ✅ Run your real app here after login

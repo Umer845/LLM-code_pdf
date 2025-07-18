@@ -4,8 +4,9 @@ import streamlit as st
 import psycopg2
 import pandas as pd
 from PyPDF2 import PdfReader
+from risk_app import run_risk_app
 
-def run_app():  # 👈 Wrap everything in a function
+def run_app():  
     st.title("📄 Upload PDF or Excel and Insert to DB")
 
     uploaded_file = st.file_uploader(
@@ -133,64 +134,86 @@ def run_app():  # 👈 Wrap everything in a function
             except Exception as e:
                 st.error(f"❌ Error: {e}")
 
+    # ====================
+    # 🔍 Search + Next Block
+    # ====================
+
     st.header("🔍 Search your database")
+
+    if 'page' not in st.session_state:
+        st.session_state.page = "main"
 
     question = st.text_input("Your Query (e.g. client name, city, make, etc.):")
 
-    if st.button("Search"):
-        if not question.strip():
-            st.warning("⚠️ Please type something to search.")
-        else:
-            try:
-                conn = psycopg2.connect(
-                    dbname="Surveyor",
-                    user="postgres",
-                    password="United2025",
-                    host="localhost",
-                    port="5432"
-                )
-                cur = conn.cursor()
+    col1, col2 = st.columns(2)
 
-                sql = """
-                    SELECT * FROM vehicle_inspection
-                    WHERE
-                        CLIENT_NAME ILIKE %s OR
-                        ADDRESS1 ILIKE %s OR
-                        CAST(CITY_ID AS TEXT) ILIKE %s OR
-                        CITY_NAME ILIKE %s OR
-                        CAST(REGION_ID AS TEXT) ILIKE %s OR
-                        BUS_CLASS_NAME ILIKE %s OR
-                        SRC_INCOME_TITLE ILIKE %s OR
-                        CAST(ACTIVE_TAX_PAYER AS TEXT) ILIKE %s OR
-                        DRIVING_STYLE ILIKE %s OR
-                        MAKE_NAME ILIKE %s OR
-                        SUB_MAKE_NAME ILIKE %s OR
-                        CAST(MODEL_YEAR AS TEXT) ILIKE %s OR
-                        REG_NUMBER ILIKE %s OR
-                        CAST(TRACKER_ID AS TEXT) ILIKE %s OR
-                        POLICY_TYPE_NAME ILIKE %s OR
-                        CAST(SUMINSURED AS TEXT) ILIKE %s OR
-                        CAST(GROSSPREMIUM AS TEXT) ILIKE %s OR
-                        CAST(NETPREMIUM AS TEXT) ILIKE %s OR
-                        CAST(NO_OF_CLAIMS AS TEXT) ILIKE %s OR
-                        CAST(CLM_AMOUNT AS TEXT) ILIKE %s
-                """
+    with col1:
+        if st.button("Search"):
+            if not question.strip():
+                st.warning("⚠️ Please type something to search.")
+            else:
+                try:
+                    conn = psycopg2.connect(
+                        dbname="Surveyor",
+                        user="postgres",
+                        password="United2025",
+                        host="localhost",
+                        port="5432"
+                    )
+                    cur = conn.cursor()
 
-                search_pattern = f"%{question}%"
-                cur.execute(sql, tuple([search_pattern] * 20))
+                    sql = """
+                        SELECT * FROM vehicle_inspection
+                        WHERE
+                            CLIENT_NAME ILIKE %s OR
+                            ADDRESS1 ILIKE %s OR
+                            CAST(CITY_ID AS TEXT) ILIKE %s OR
+                            CITY_NAME ILIKE %s OR
+                            CAST(REGION_ID AS TEXT) ILIKE %s OR
+                            BUS_CLASS_NAME ILIKE %s OR
+                            SRC_INCOME_TITLE ILIKE %s OR
+                            CAST(ACTIVE_TAX_PAYER AS TEXT) ILIKE %s OR
+                            DRIVING_STYLE ILIKE %s OR
+                            MAKE_NAME ILIKE %s OR
+                            SUB_MAKE_NAME ILIKE %s OR
+                            CAST(MODEL_YEAR AS TEXT) ILIKE %s OR
+                            REG_NUMBER ILIKE %s OR
+                            CAST(TRACKER_ID AS TEXT) ILIKE %s OR
+                            POLICY_TYPE_NAME ILIKE %s OR
+                            CAST(SUMINSURED AS TEXT) ILIKE %s OR
+                            CAST(GROSSPREMIUM AS TEXT) ILIKE %s OR
+                            CAST(NETPREMIUM AS TEXT) ILIKE %s OR
+                            CAST(NO_OF_CLAIMS AS TEXT) ILIKE %s OR
+                            CAST(CLM_AMOUNT AS TEXT) ILIKE %s
+                    """
 
-                rows = cur.fetchall()
-                colnames = [desc[0] for desc in cur.description]
+                    search_pattern = f"%{question}%"
+                    cur.execute(sql, tuple([search_pattern] * 20))
 
-                if rows:
-                    df = pd.DataFrame(rows, columns=colnames)
-                    st.dataframe(df)
-                else:
-                    st.info("🔍 No matching records found.")
+                    rows = cur.fetchall()
+                    colnames = [desc[0] for desc in cur.description]
 
-                cur.close()
-                conn.close()
+                    if rows:
+                        df = pd.DataFrame(rows, columns=colnames)
+                        st.dataframe(df)
+                    else:
+                        st.info("🔍 No matching records found.")
 
-            except Exception as e:
-                st.error(f"❌ Error: {e}")
+                    cur.close()
+                    conn.close()
 
+                except Exception as e:
+                    st.error(f"❌ Error: {e}")
+
+
+    if 'page' not in st.session_state:
+     st.session_state.page = "main"
+
+    with col2:
+        if st.button("Next ➡️"):
+            st.session_state.page = "risk_app.py"
+            st.rerun()      
+
+    # 🚦 Page Router
+    if st.session_state.page == "risk_app.py":
+        run_risk_app()
