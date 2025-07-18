@@ -3,6 +3,7 @@
 import streamlit as st
 import psycopg2
 import pandas as pd
+from premium import run_premium_block
 
 def run_risk_app():
     st.title("🚦 Risk Profile Page")
@@ -118,7 +119,16 @@ def run_risk_app():
         except Exception as e:
             st.error(f"❌ DB Error: {e}")
 
-    # Optional: Add a button to go back to main page if needed
-    if st.button("⬅️ Back"):
-        st.session_state.page = "main"
+
+    if st.button("Next ➡️ Premium"):
+        st.session_state.page = "premium"
         st.rerun()
+
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("⬅️ Back to Main"):
+            st.session_state.page = "main"
+            st.rerun()
+
+    if st.session_state.page == "premium":
+        run_premium_block()

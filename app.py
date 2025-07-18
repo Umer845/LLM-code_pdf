@@ -211,9 +211,9 @@ def run_app():
 
     with col2:
         if st.button("Next ➡️"):
-            st.session_state.page = "risk_app.py"
-            st.rerun()      
+            st.session_state.page = "risk_app"
+            st.rerun()
 
     # 🚦 Page Router
-    if st.session_state.page == "risk_app.py":
+    if st.session_state.page == "risk_app":
         run_risk_app()
