@@ -10,9 +10,9 @@ def run_risk_app():
 
     st.write("Fill in the details below to calculate your risk profile:")
 
-    age = st.number_input("Driver Age", min_value=16, max_value=100, value=30)
-    vehicle_capacity = st.number_input("Vehicle Capacity (cc)", min_value=500, max_value=5000, value=1500)
-    num_claims = st.number_input("Number of Claims", min_value=0, max_value=50, value=2)
+    age = st.number_input("Driver Age", min_value=16, max_value=100, value=30, placeholder="Enter Driver Age")
+    vehicle_capacity = st.number_input("Vehicle Capacity (cc)", min_value=500, max_value=5000, value=1500, placeholder="Enter Vehicle Capacity")
+    num_claims = st.number_input("Number of Claims", min_value=0, max_value=50, value=2, placeholder="Enter Number oF Claims")
 
     if st.button("Calculate Risk"):
         # 1️⃣ AGE risk score

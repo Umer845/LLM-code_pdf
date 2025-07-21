@@ -13,8 +13,8 @@ def run_premium_block():
 
     # User inputs
     MODEL_YEAR = st.number_input("Enter Latest Model Year", min_value=1980, max_value=2050, value=2024)
-    MAKE_NAME = st.text_input("Enter Vehicle Make Name")
-    SUB_MAKE_NAME = st.text_input("Enter Vehicle Variant")
+    MAKE_NAME = st.text_input("Enter Vehicle Make Name", placeholder="Enter Vehicle Make Name")
+    SUB_MAKE_NAME = st.text_input("Enter Vehicle Variant", placeholder="Enter Vehicle Sub-Make Name")
 
     if st.button("Calculate Premium Rate"):
         try:

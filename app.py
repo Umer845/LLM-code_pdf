@@ -5,6 +5,7 @@ import psycopg2
 import pandas as pd
 from PyPDF2 import PdfReader
 from risk_app import run_risk_app
+from premium import run_premium_block
 
 def run_app():  
     st.title("📄 Upload PDF or Excel and Insert to DB")
@@ -217,3 +218,5 @@ def run_app():
     # 🚦 Page Router
     if st.session_state.page == "risk_app":
         run_risk_app()
+    elif st.session_state.page == "premium":
+      run_premium_block()
