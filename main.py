@@ -61,7 +61,7 @@ if st.session_state.logged_in:
     if st.query_params.get('logout') is not None:
         st.session_state.logged_in = False
         st.session_state.page = "login"
-        st.experimental_rerun()
+        st.rerun()
 
 # ---- LOGIN PAGE ----
 def login():
