@@ -1,9 +1,10 @@
 # app.py
 
-import streamlit as st
-import psycopg2
-import pandas as pd
-from PyPDF2 import PdfReader
+import streamlit as st         # Requires: pip install streamlit
+import psycopg2                # OR: pip install psycopg2-binary
+import pandas as pd            # Requires: pip install pandas
+from PyPDF2 import PdfReader   # Requires: pip install PyPDF2
+
 
 def run_app():  # 👈 Wrap everything in a function
     st.title("📄 Upload PDF or Excel and Insert to DB")
