@@ -4,12 +4,13 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from app import run_app  # ✅ Make sure app.py has: def run_app(): ...
 
 # ---- DB CONNECTION ----
+# ✅ Use secrets instead of hardcoding sensitive info
 conn = psycopg2.connect(
-    dbname="Surveyor",
-    user="postgres",
-    password="United2025",
-    host="localhost",
-    port="5432"
+    dbname=st.secrets["postgres"]["Surveyor"],
+    user=st.secrets["postgres"]["postgres"],
+    password=st.secrets["postgres"]["United2025"],
+    host=st.secrets["postgres"]["host"],
+    port=st.secrets["postgres"]["5432"]
 )
 cur = conn.cursor()
 
@@ -103,23 +104,23 @@ def register():
     col1, col2 = st.columns([1, 1])
 
     with col1:
-     if st.button("Register"):
-        hashed_pw = generate_password_hash(password)
-        try:
-            cur.execute(
-                "INSERT INTO authentication (username, age, phone_no, password) VALUES (%s, %s, %s, %s)",
-                (username, age, phone_no, hashed_pw)
-            )
-            conn.commit()
-            st.success("✅ Registration successful! You can now log in.")
-            st.session_state.page = "login"
-        except Exception as e:
-            st.error(f"❌ Error: {e}")
-            
+        if st.button("Register"):
+            hashed_pw = generate_password_hash(password)
+            try:
+                cur.execute(
+                    "INSERT INTO authentication (username, age, phone_no, password) VALUES (%s, %s, %s, %s)",
+                    (username, age, phone_no, hashed_pw)
+                )
+                conn.commit()
+                st.success("✅ Registration successful! You can now log in.")
+                st.session_state.page = "login"
+            except Exception as e:
+                st.error(f"❌ Error: {e}")
+
     with col2:
-     if st.button("Back to Login"):
-        st.session_state.page = "login"
-        st.markdown('</div>', unsafe_allow_html=True)
+        if st.button("Back to Login"):
+            st.session_state.page = "login"
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # ---- APP ROUTER ----
 if not st.session_state.logged_in:
