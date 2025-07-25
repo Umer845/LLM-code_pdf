@@ -7,8 +7,9 @@ from PyPDF2 import PdfReader
 from risk_app import run_risk_app
 from premium import run_premium_block
 
+
 def run_app():  
-    st.title("📄 Upload PDF or Excel and Insert to DB")
+    st.title("📄 Upload Files and Insert to DB")
 
     uploaded_file = st.file_uploader(
         "Upload a PDF or Excel file",
@@ -149,7 +150,7 @@ def run_app():
     col1, col2 = st.columns(2)
 
     with col1:
-        if st.button("Search"):
+        if st.button("🔍 Search"):
             if not question.strip():
                 st.warning("⚠️ Please type something to search.")
             else:
@@ -220,3 +221,4 @@ def run_app():
         run_risk_app()
     elif st.session_state.page == "premium":
       run_premium_block()
+
