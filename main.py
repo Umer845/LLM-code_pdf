@@ -32,7 +32,7 @@ st.markdown(
     .top-right {
         position: absolute;
         top: -43px;
-        right: -580px;
+        right: -540px;
         background-color: rgb(19, 23, 32);
         border-radius: 4px;
         padding: 5px 29px;
